@@ -9,11 +9,14 @@ module WxPay
     def self.generate(params, sign_type = SIGN_TYPE_MD5)
       key = params.delete(:key)
 
+      new_key = params["key"] #after
+      key = params.delete("key") if params["key"] #after
+
       query = params.sort.map do |k, v|
         "#{k}=#{v}" if v.to_s != ''
       end.compact.join('&')
 
-      string_sign_temp = "#{query}&key=#{key || WxPay.key}"
+      string_sign_temp = "#{query}&key=#{key || new_key || WxPay.key}"
 
       if sign_type == SIGN_TYPE_MD5
         Digest::MD5.hexdigest(string_sign_temp).upcase
@@ -27,8 +30,10 @@ module WxPay
     def self.verify?(params, options = {})
       return true if WxPay.sandbox_mode?
       params = params.dup
-      params = params.merge(options)
-      sign = params.delete('sign') || params.delete(:sign)
+
+      params["appid"] = options.delete(:appid)  if options[:appid]
+      params["mch_id"] = options.delete(:mch_id)  if options[:mch_id]
+      params["key"] = options.delete(:key)  if options[:key]
       generate(params) == sign
     end
   end
